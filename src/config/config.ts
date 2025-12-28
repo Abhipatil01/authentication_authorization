@@ -12,6 +12,7 @@ interface Config {
   emailFrom: string;
   jwtAuthSecret: string;
   appUrl: string;
+  nodeEnvironment: string;
 }
 
 const port = Number(process.env.PORT) || 3000;
@@ -27,6 +28,7 @@ const config: Config = {
   smtpPass: process.env.SMTP_PASS!,
   emailFrom: process.env.EMAIL_FROM!,
   appUrl: process.env.APP_URL || `http://${host}:${port}`,
+  nodeEnvironment: process.env.NODE_ENV!,
 };
 
 export default config;

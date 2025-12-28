@@ -2,9 +2,10 @@ import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import config from '../../config/config';
 import { sendEmail } from '../../lib/email';
-import { hashPassword } from '../../lib/hash';
+import { checkPassword, hashPassword } from '../../lib/hash';
+import { createAccessToken, createRefreshToken } from '../../lib/token';
 import User from '../../models/user.model';
-import { registerSchema } from './auth.schema';
+import { loginSchema, registerSchema } from './auth.schema';
 
 export async function registerUser(req: Request, res: Response) {
   try {
@@ -115,4 +116,72 @@ export async function verifyEmail(req: Request, res: Response) {
   }
 }
 
-export async function loginUser(req: Request, res: Response) {}
+export async function loginUser(req: Request, res: Response) {
+  try {
+    const result = loginSchema.safeParse(req.body);
+
+    if (!result.success) {
+      return res.status(400).json({
+        message: 'Invalid data!',
+        errors: result.error.flatten(),
+      });
+    }
+
+    const { email, password } = result.data;
+    const normalizedEmail = email.toLocaleLowerCase().trim();
+
+    const user = await User.findOne({ email: normalizedEmail });
+    if (!user) {
+      return res.status(400).json({
+        message: 'Invalid email or password',
+      });
+    }
+
+    const isPasswordMatched = await checkPassword(password, user.password);
+
+    if (!isPasswordMatched) {
+      return res.status(400).json({
+        message: 'Invalid email or password',
+      });
+    }
+
+    if (!user.isEmailVerified) {
+      return res.status(403).json({
+        message: 'Please verify your before login',
+      });
+    }
+
+    const accessToken = createAccessToken(
+      user.id,
+      user.role,
+      user.tokenVersion
+    );
+    const refreshToken = createRefreshToken(user.id, user.tokenVersion);
+
+    const isProd = config.nodeEnvironment === 'production';
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return res.status(200).json({
+      message: 'Login sucessfully',
+      accessToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        isEmailVerified: user.isEmailVerified,
+        isTwoFactorEnabled: user.isTwoFactorEnabled,
+      },
+    });
+  } catch (error) {
+    console.log(`Error while login user. Error: ${error}`);
+    return res.status(500).json({
+      message: 'Internal server error',
+    });
+  }
+}
