@@ -27,3 +27,7 @@ export function createRefreshToken(userId: string, tokenVersion: number) {
     expiresIn: '7d',
   });
 }
+
+export function verifyRefreshToken(token: string) {
+  return jwt.verify(token, config.jwtAuthSecret);
+}
