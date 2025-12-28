@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import config from '../../config/config';
@@ -252,10 +253,62 @@ export async function refreshToken(req: Request, res: Response) {
   }
 }
 
-export async function logoutUser(req: Request, res: Response) {
+export async function logoutUser(_req: Request, res: Response) {
   res.clearCookie('refreshToken', { path: '/' });
 
   return res.status(200).json({
     message: 'Logout sucessfully',
   });
+}
+
+export async function forgotPassword(req: Request, res: Response) {
+  const { email } = req.body as { email: string };
+
+  if (!email) {
+    return res.status(400).json({
+      message: 'Email is required',
+    });
+  }
+
+  const normalizedEmail = email.toLocaleLowerCase().trim();
+
+  try {
+    const user = await User.findOne({ email: normalizedEmail });
+
+    if (!user) {
+      return res.json({
+        message:
+          'If an account with this email exists, we will send you a reset link',
+      });
+    }
+
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const hashToken = crypto
+      .createHash('sha256')
+      .update(rawToken)
+      .digest('hex');
+
+    user.resetPasswordToken = hashToken;
+    user.resetPasswordExpiresIn = new Date(Date.now() + 15 * 60 * 1000);
+    await user.save();
+
+    const resetUrl = `${config.appUrl}/auth/reset-password?token=${rawToken}`;
+    await sendEmail(
+      user.email,
+      'Reset your password',
+      `<p>Click below to reset password:</p>
+       <p><a href=${resetUrl}>Reset Password</a></p>
+      `
+    );
+
+    return res.json({
+      message:
+        'If an account with this email exists, we will send you a reset link',
+    });
+  } catch (error) {
+    console.log(`Error while forget password. Error: ${error}`);
+    return res.status(500).json({
+      message: 'Internal server error',
+    });
+  }
 }
