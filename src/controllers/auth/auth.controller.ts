@@ -312,3 +312,52 @@ export async function forgotPassword(req: Request, res: Response) {
     });
   }
 }
+
+export async function resetPassword(req: Request, res: Response) {
+  const { token, password } = req.body as {
+    token: string;
+    password: string;
+  };
+
+  if (!token) {
+    return res.status(400).json({
+      message: 'Token is missing',
+    });
+  }
+
+  if (!password || password.length < 6) {
+    return res.status(400).json({
+      message: 'Password is requied and must be 6 characters long',
+    });
+  }
+
+  try {
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const user = await User.findOne({
+      resetPasswordToken: tokenHash,
+      resetPasswordExpiresIn: { $gt: new Date() },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        message: 'Token is invalid or expired',
+      });
+    }
+
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpiresIn = undefined;
+
+    const passwordHash = await hashPassword(password);
+    user.password = passwordHash;
+    await user.save();
+
+    return res.json({
+      message: 'Password updated sucessfully',
+    });
+  } catch (error) {
+    console.log(`Error while resetting password. Error: ${error}`);
+    return res.status(500).json({
+      message: 'Internal server error',
+    });
+  }
+}

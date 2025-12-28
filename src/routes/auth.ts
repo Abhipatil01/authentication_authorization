@@ -5,6 +5,7 @@ import {
   logoutUser,
   refreshToken,
   registerUser,
+  resetPassword,
   verifyEmail,
 } from '../controllers/auth/auth.controller';
 
@@ -16,5 +17,6 @@ router.post('/login', loginUser);
 router.post('/refresh', refreshToken);
 router.post('/logout', logoutUser);
 router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPassword);
 
 export default router;
