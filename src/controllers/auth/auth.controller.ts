@@ -251,3 +251,11 @@ export async function refreshToken(req: Request, res: Response) {
     });
   }
 }
+
+export async function logoutUser(req: Request, res: Response) {
+  res.clearCookie('refreshToken', { path: '/' });
+
+  return res.status(200).json({
+    message: 'Logout sucessfully',
+  });
+}
