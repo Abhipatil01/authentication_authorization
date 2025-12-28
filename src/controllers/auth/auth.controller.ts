@@ -344,11 +344,11 @@ export async function resetPassword(req: Request, res: Response) {
       });
     }
 
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpiresIn = undefined;
-
     const passwordHash = await hashPassword(password);
     user.password = passwordHash;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpiresIn = undefined;
+    user.tokenVersion = user.tokenVersion + 1;
     await user.save();
 
     return res.json({
