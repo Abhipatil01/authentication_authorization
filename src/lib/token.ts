@@ -17,6 +17,14 @@ export function createAccessToken(
   });
 }
 
+export function verifyAccessToken(token: string) {
+  return jwt.verify(token, config.jwtAuthSecret) as {
+    sub: string;
+    role: 'user' | 'admin';
+    tokenVersion: number;
+  };
+}
+
 export function createRefreshToken(userId: string, tokenVersion: number) {
   const payload = {
     sub: userId,
