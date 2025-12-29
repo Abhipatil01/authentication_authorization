@@ -1,5 +1,6 @@
 import cookieParser from 'cookie-parser';
 import express from 'express';
+import adminRoutes from './routes/admin';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/user';
 
@@ -14,5 +15,6 @@ app.get('/health', (req, res) => {
 
 app.use('/auth', authRoutes);
 app.use('/user', userRoutes);
+app.use('/admin', adminRoutes);
 
 export default app;
